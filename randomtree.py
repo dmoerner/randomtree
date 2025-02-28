@@ -74,7 +74,7 @@ class TreeNode:
             delte the second one.
             """
             node1.val, node2.val = node2.val, node1.val
-            self.__class__.delete(node1, val, node2)
+            self.__class__.delete(node2, val, node1)
 
         if self.val == val:
             # Handle the root by reducing to another case.
