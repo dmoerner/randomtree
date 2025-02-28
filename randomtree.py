@@ -59,9 +59,6 @@ class TreeNode:
 
 
     def delete(self, val: int, parent=None):
-        """
-        Does nothing if the object is not found.
-        """
         def update_parent(parent: Self, deleted: Self, new: Self | None):
             """
             Helper function to update the correct pointer in the parent.
@@ -102,9 +99,11 @@ class TreeNode:
             return
         if self.left and self.left.find(val):
             self.__class__.delete(self.left, val, self)
+            return
         if self.right and self.right.find(val):
             self.__class__.delete(self.right, val, self)
-
+            return
+        raise ValueError("Tried to delete element not in tree")
 
 
 class RandomNode(TreeNode):
@@ -113,15 +112,15 @@ class RandomNode(TreeNode):
         self.size = 1
 
     def insert(self, val: Any):
-        self.size += 1
         super().insert(val)
+        self.size += 1
 
     def delete(self, val, parent=None):
         # This still doesn't work in the case where we have to
         # do a swap: We are not updating the size properly.
         # Or are we decrementing twice by accident?
-        self.size -= 1
         super().delete(val, parent)
+        self.size -= 1
 
     def getRandomNode(self):
         pass
