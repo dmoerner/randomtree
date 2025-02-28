@@ -1,6 +1,3 @@
-import random
-from collections import deque
-
 """
 Cracking the Coding Interview, 4.11:
 
@@ -8,13 +5,19 @@ Implement a binary tree class which, in addition to insert, find, and delete,
 has a method `getRandomNode()` which returns a random node from the tree.
 All nodes should be equally likely to be chosen.
 
-Shouldn't there be someway to do this with dependency injection into
-an existing tree class?
+The goal is to use this is an opportunity to practice Python inheritance.
 
-Let's assume there's no duplicates.
+We will assume that the binary tree has no duplicates and has a minimum
+size of 1.
+
+The type hints are just for show: We really need a Comparable type for
+values.
 """
+from typing import Any, Self
+import random
+
 class TreeNode:
-    def __init__(self, val, left=None, right=None):
+    def __init__(self, val: Any | None = None, left: Self | None = None, right: Self | None = None):
         self.val = val
         self.left = left
         self.right = right
@@ -33,7 +36,7 @@ class TreeNode:
         helper(self)
         return str(result)
 
-    def find(self, target):
+    def find(self, target: Any):
         if self.val == target:
             return True
         left = right = False
@@ -41,10 +44,11 @@ class TreeNode:
             left = self.left.find(target)
         if self.right:
             right = self.right.find(target)
-
         return left or right
 
-    def insert(self, val):
+    def insert(self, val: int):
+        if self.find(val):
+            raise ValueError("Attempted to insert duplicate element")
         if self.left is None:
             self.left = self.__class__(val)
         elif self.right is None:
@@ -54,80 +58,70 @@ class TreeNode:
             subtree.__class__.insert(subtree, val)
 
 
-    def deleterec(self, val, parent=None):
+    def delete(self, val: int, parent=None):
         """
-        Unfinished, totally recursive implementation of deleterec for use
-        with inheritance. Assumes tree has no duplicates.
+        Does nothing if the object is not found.
         """
-        if not self:
-            return
+        def update_parent(parent: Self, deleted: Self, new: Self | None):
+            """
+            Helper function to update the correct pointer in the parent.
+            """
+            if parent.left == deleted:
+                parent.left = new
+            elif parent.right == deleted:
+                parent.right = new
+
+        def swap_and_delete(node1: Self, node2: Self):
+            """
+            Helper function to swap the values of two nodes and then
+            delte the second one.
+            """
+            node1.val, node2.val = node2.val, node1.val
+            self.__class__.delete(node1, val, node2)
+
         if self.val == val:
+            # Handle the root by reducing to another case.
             if parent is None:
-                raise ValueError("can't delete from singleton tree")
-            # delete
-            return
-        if self.left:
-            self.__class__.deleterec(self.left, val, self)
-        if self.right:
-            self.__class__.deleterec(self.right, val, self)
-
-
-    def delete(self, val):
-        """
-        Since the tree can have duplicate values, this is not easy to do
-        recursively. Use a BFS to delete the first instance found.
-        """
-        def updateparent(parentptr, dir, target):
-            if dir == 0:
-                parentptr.left = target
+                if self.left is None and self.right is None:
+                    raise ValueError("Can't delete from singleton tree")
+                elif self.left is not None:
+                    swap_and_delete(self, self.left)
+                elif self.right is not None:
+                    swap_and_delete(self, self.right)
+            # Delete this node, adjusting the tree. There are four cases.
+            elif self.left is not None and self.right is not None:
+                # As a matter of convention: Swap self and self.left, then delete self.left.
+                swap_and_delete(self, self.left)
+            elif self.left is not None:
+                update_parent(parent, self, self.left)
+            elif self.right is not None:
+                update_parent(parent, self, self.right)
             else:
-                parentptr.right = target
+                update_parent(parent, self, None)
 
-        queue = deque([(self, None, 0)])
-        while queue:
-            cur, parent, dir = queue.popleft()
-            if cur.val == val:
-                if parent is None:
-                    if self.left and self.left.find(val):
-                        self.left.__class__.delete(self.left, val)
-                        return
-                    elif self.right and self.right.find(val):
-                        self.right.__class__.delete(self.right, val)
-                        return
-                    else:
-                        raise ValueError("can't delete from singleton tree")
-                else:
-                    if cur.left is not None and cur.right is not None:
-                        cur.val, cur.left.val = cur.left.val, cur.val
-                        cur.left.__class__.delete(cur.left, val)
-                    elif cur.left is not None:
-                        updateparent(parent, dir, cur.left)
-                    elif cur.right is not None:
-                        updateparent(parent, dir, cur.right)
-                    else:
-                        updateparent(parent, dir, None)
-                    return
-            if cur.left:
-                queue.append((cur.left, cur, 0))
-            if cur.right:
-                queue.append((cur.right, cur, 1))
+            return
+        if self.left and self.left.find(val):
+            self.__class__.delete(self.left, val, self)
+        if self.right and self.right.find(val):
+            self.__class__.delete(self.right, val, self)
 
 
 
 class RandomNode(TreeNode):
-    def __init__(self, val, left=None, right=None):
+    def __init__(self, val: Any, left: Self | None = None, right: Self | None =None):
         super().__init__(val, left, right)
         self.size = 1
 
-    def insert(self, val):
+    def insert(self, val: Any):
         self.size += 1
         super().insert(val)
 
-    def delete(self, val):
-        # This doesn't work, right? Yeah, this won't work, because
-        # delete is not recursive in the right way.
+    def delete(self, val, parent=None):
+        # This still doesn't work in the case where we have to
+        # do a swap: We are not updating the size properly.
+        # Or are we decrementing twice by accident?
         self.size -= 1
-        super().delete(val)
+        super().delete(val, parent)
 
     def getRandomNode(self):
         pass
