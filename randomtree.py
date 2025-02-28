@@ -14,6 +14,7 @@ The type hints are just for show: We really need a Comparable type for
 values.
 """
 from typing import Any, Self
+import math
 import random
 
 class TreeNode:
@@ -107,6 +108,10 @@ class TreeNode:
 
 
 class RandomNode(TreeNode):
+    """
+    Implementation note: Always call the super() function first, so we bail on
+    an exception instead of doing updates that turn out to be dirty.
+    """
     def __init__(self, val: Any, left: Self | None = None, right: Self | None =None):
         super().__init__(val, left, right)
         self.size = 1
@@ -116,11 +121,26 @@ class RandomNode(TreeNode):
         self.size += 1
 
     def delete(self, val, parent=None):
-        # This still doesn't work in the case where we have to
-        # do a swap: We are not updating the size properly.
-        # Or are we decrementing twice by accident?
         super().delete(val, parent)
         self.size -= 1
 
-    def getRandomNode(self):
-        pass
+    def getRandomNode(self, seed: float | None = None):
+        """
+        Includes optimization to use a single random number for each
+        branch. We partition each space between three numbers:
+
+        0 <= choice < 1: self
+        1 <= choice < 1 + self.left.size: self.left
+        else: self.right
+
+        The tests are simplified by the different possibilities.
+        """
+        if seed is None:
+            seed = random.random()
+        choice = math.floor(seed * self.size)
+        if choice == 0:
+            return self
+        elif self.left is not None and choice < 1 + self.left.size:
+            return self.left.getRandomNode(seed)
+        elif self.right is not None:
+            return self.right.getRandomNode(seed)
